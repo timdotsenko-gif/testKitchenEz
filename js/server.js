@@ -9,26 +9,54 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Настройка подключения к PostgreSQL
-let connectionString = process.env.DATABASE_URL;
-
-if (connectionString) {
-    console.log('DATABASE_URL detected. Cleaning string...');
-    // Находим начало ссылки
-    const pgIndex = connectionString.indexOf('postgres');
-    if (pgIndex !== -1) {
-        connectionString = connectionString.substring(pgIndex).trim();
+const getConnectionString = () => {
+    // Пробуем разные варианты написания (на случай опечаток в Render)
+    const rawUrl = process.env.DATABASE_URL || process.env.database_url || process.env.Database_Url;
+    
+    if (!rawUrl) {
+        console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная DATABASE_URL не найдена в окружении!');
+        return null;
     }
-    // Убираем возможные кавычки и лишние символы в конце
-    connectionString = connectionString.split(' ')[0].replace(/['";]/g, '').trim();
-}
 
-console.log('Connecting to database (host masked):', connectionString ? connectionString.split('@')[1] : 'NOT FOUND');
+    console.log('DATABASE_URL найдена. Длина:', rawUrl.length);
+
+    // Очистка строки
+    let cleanUrl = rawUrl.trim();
+    
+    // Если строка начинается не с postgres, пробуем найти начало ссылки
+    if (!cleanUrl.startsWith('postgres')) {
+        const index = cleanUrl.indexOf('postgres');
+        if (index !== -1) {
+            cleanUrl = cleanUrl.substring(index);
+        }
+    }
+
+    // Убираем всё после первого пробела, кавычки и точки с запятой
+    cleanUrl = cleanUrl.split(/\s+/)[0].replace(/['";]/g, '');
+
+    // Финальная проверка
+    if (!cleanUrl.startsWith('postgres')) {
+        console.error('ОШИБКА: DATABASE_URL имеет неверный формат:', cleanUrl.substring(0, 20) + '...');
+        return null;
+    }
+
+    return cleanUrl;
+};
+
+const connectionString = getConnectionString();
 
 const pool = new Pool({
     connectionString: connectionString,
-    ssl: {
-        rejectUnauthorized: false
+    ssl: connectionString ? { rejectUnauthorized: false } : false
+});
+
+// Проверка подключения
+pool.connect((err, client, release) => {
+    if (err) {
+        return console.error('Ошибка подключения к базе Neon:', err.stack);
     }
+    console.log('Успешное тестовое подключение к Neon PostgreSQL!');
+    release();
 });
 
 app.use(cors());
