@@ -1,83 +1,113 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Настройка подключения к PostgreSQL
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Обязательно для облачных баз типа Neon/Render
+    }
+});
+
 app.use(cors());
 app.use(bodyParser.json());
-
-// Раздача статических файлов (теперь сервер будет показывать сайт)
 app.use(express.static(path.resolve(__dirname, '../')));
 
-const dbPath = path.resolve(__dirname, '../database.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) console.error('Ошибка открытия БД:', err.message);
-    else console.log('База данных SQLite подключена!');
-});
+// Создание таблиц при запуске (если их нет)
+const initDb = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL,
+                password TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS cart (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER,
+                product_name TEXT NOT NULL,
+                price TEXT,
+                image_url TEXT
+            );
+        `);
+        console.log('Облачная база данных PostgreSQL готова!');
+    } catch (err) {
+        console.error('Ошибка инициализации БД:', err);
+    }
+};
 
-db.serialize(() => {
-    // Таблица пользователей
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL
-    )`);
+initDb();
 
-    // Таблица корзины (добавили image_url)
-    db.run(`CREATE TABLE IF NOT EXISTS cart (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        product_name TEXT NOT NULL,
-        price TEXT,
-        image_url TEXT, 
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-});
-
-app.post('/register', (req, res) => {
+// Регистрация
+app.post('/register', async (req, res) => {
     const { username, password } = req.body;
-    db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], function(err) {
-        if (err) return res.status(400).json({ error: err.message });
-        res.json({ id: this.lastID });
-    });
+    try {
+        const result = await pool.query(
+            'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id',
+            [username, password]
+        );
+        res.json({ id: result.rows[0].id });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-app.post('/login', (req, res) => {
+// Логин
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
-        if (err) return res.status(400).json({ error: err.message });
-        if (!row) return res.status(404).json({ error: 'Неверный логин или пароль' });
-        res.json(row);
-    });
+    try {
+        const result = await pool.query(
+            'SELECT * FROM users WHERE username = $1 AND password = $2',
+            [username, password]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Неверный логин или пароль' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-// Добавление в корзину (теперь с картинкой)
-app.post('/cart/add', (req, res) => {
+// Добавление в корзину
+app.post('/cart/add', async (req, res) => {
     const { user_id, product_name, price, image_url } = req.body;
-    const sql = 'INSERT INTO cart (user_id, product_name, price, image_url) VALUES (?, ?, ?, ?)';
-    db.run(sql, [user_id, product_name, price, image_url], function(err) {
-        if (err) return res.status(400).json({ error: err.message });
-        res.json({ id: this.lastID });
-    });
+    try {
+        const result = await pool.query(
+            'INSERT INTO cart (user_id, product_name, price, image_url) VALUES ($1, $2, $3, $4) RETURNING id',
+            [user_id, product_name, price, image_url]
+        );
+        res.json({ id: result.rows[0].id });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-app.get('/cart/:user_id', (req, res) => {
-    db.all('SELECT * FROM cart WHERE user_id = ?', [req.params.user_id], (err, rows) => {
-        if (err) return res.status(400).json({ error: err.message });
-        res.json(rows);
-    });
+// Получение корзины
+app.get('/cart/:user_id', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM cart WHERE user_id = $1', [req.params.user_id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
 // Удаление из корзины
-app.delete('/cart/delete/:id', (req, res) => {
-    db.run('DELETE FROM cart WHERE id = ?', req.params.id, function(err) {
-        if (err) return res.status(400).json({ error: err.message });
+app.delete('/cart/delete/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cart WHERE id = $1', [req.params.id]);
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
 
-app.listen(PORT, () => console.log(`Сервер: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Сервер запущен на порту ${PORT}`));
