@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (res.ok) {
                     updateUI();
-                    alert('Добавлено в корзину!');
+                    // Убрали alert('Добавлено в корзину!');
                 }
             } catch (err) {
                 console.error('Ошибка при добавлении:', err);
