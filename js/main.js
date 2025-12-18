@@ -203,7 +203,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (!res.ok) {
                     const errorData = await res.json();
-                    throw new Error(errorData.error || 'Ошибка сервера');
+                    console.error('Server error:', errorData);
+                    throw new Error(errorData.error || 'Неверный логин или пароль');
                 }
 
                 const data = await res.json();
