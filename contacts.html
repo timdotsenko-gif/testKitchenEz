@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контакты</title>
+    <link rel="stylesheet" href="css/main.css?v=1.9">
+</head>
+
+<body>
+    <div class="wrapper">
+        <header class="container">
+            <a href="index.html" class="logo-link">
+                <img src="img/logo.jfif" alt="LOGO" class="logo">
+            </a>
+            <nav>
+                <ul id="nav-links">
+                    <li><a href="index.html">Главная</a></li>
+                    <li><a href="catalog.html">Каталог</a></li>
+                    <li><a href="contacts.html">Контакты</a></li>
+                    <li><a href="about_me.html">О нас</a></li>
+                    <li class="guest-only"><a href="#" id="open_pop_up" class="login-btn">Войти</a></li>
+                    <li class="guest-only"><a href="#" id="open_register_pop_up" class="register-btn">Регистрация</a></li>
+                    <li class="user-only" style="display:none;"><a href="#" class="cart-link">🛒 Корзина <span id="cart-count">0</span></a></li>
+                    <li class="user-only" style="display:none;"><span id="user-name-display" style="color: #1E90FF; font-weight: bold;"></span></li>
+                    <li class="user-only" style="display:none;"><a href="#" id="logout-btn" class="logout-btn">Выйти</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Окно корзины -->
+        <div class="pop_up" id="cart_pop_up">
+            <div class="pop_up_container">
+                <div class="pop_up_body cart-body">
+                    <h2>Ваша корзина</h2>
+                    <div id="cart-items-list">
+                        <!-- Сюда JS будет добавлять товары -->
+                    </div>
+                    <div class="cart-total">
+                        Итого: <span id="cart-total-price">0</span> &#8381;
+                    </div>
+                    <div class="pop_up_close" id="cart_pop_up_close">&#10006;</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pop_up" id="pop_up">
+            <div class="pop_up_container">
+                <div class="pop_up_body" id="pop_up_body">
+                    <div class="auth-form active" id="login-form">
+                        <h2>Вход</h2>
+                        <form id="loginForm">
+                            <input type="text" placeholder="Логин или Email" required>
+                            <input type="password" placeholder="Пароль" required>
+                            <button type="submit" class="auth-btn">Войти</button>
+                        </form>
+                        <p class="auth-switch">Нет аккаунта? <a href="#" class="switch-to-register">Зарегистрироваться</a></p>
+                    </div>
+
+                    <div class="auth-form" id="register-form">
+                        <h2>Регистрация</h2>
+                        <form id="registerForm">
+                            <input type="text" placeholder="Имя пользователя" required>
+                            <input type="password" placeholder="Пароль" required>
+                            <button type="submit" class="auth-btn">Зарегистрироваться</button>
+                        </form>
+                        <p class="auth-switch">Уже есть аккаунт? <a href="#" class="switch-to-login">Войти</a></p>
+                    </div>
+                    
+                    <div class="pop_up_close" id="pop_up_close">&#10006;</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="contacts-page container">
+            <div class="contacts-hero">
+                <h1>Свяжитесь с нами</h1>
+                <p>Мы всегда рады ответить на ваши вопросы и помочь с выбором лучшей техники</p>
+            </div>
+
+            <div class="contacts-grid">
+                <div class="contact-card">
+                    <div class="card-icon">📞</div>
+                    <h3>Телефон</h3>
+                    <p><a href="tel:+79120669958">+7 912 066 99 58</a></p>
+                    <span>Звоните нам ежедневно с 9:00 до 21:00</span>
+                </div>
+
+                <div class="contact-card">
+                    <div class="card-icon">✉️</div>
+                    <h3>Электронная почта</h3>
+                    <p><a href="mailto:tim.dotsenko@mail.ru">tim.dotsenko@mail.ru</a></p>
+                </div>
+
+                <div class="contact-card">
+                    <div class="card-icon">📍</div>
+                    <h3>Наш офис</h3>
+                    <p>г. Оренбург, МЖК</p>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <div class="map-container">
+                    <script type="text/javascript" charset="utf-8" async src="https://api-maps.yandex.ru/services/constructor/1.0/js/?um=constructor%3A85b2d93612f57751eb8183d89bac39a2afb00e400e03ea853fb4010afec054f8&amp;width=100%25&amp;height=450&amp;lang=ru_RU&amp;scroll=true"></script>
+                </div>
+            </div>
+            
+            <div class="social-section">
+                <h2>Мы в социальных сетях</h2>
+                <div class="social-links">
+                    <a href="https://www.instagram.com" target="_blank" class="social-btn instagram">Instagram</a>   
+                    <a href="https://vk.com/uglycreep_and_mystic.stylezz_fan" target="_blank" class="social-btn vk">ВКонтакте</a>
+                </div>
+            </div>
+        </div>
+
+
+
+        <footer class="main-footer">
+            <div class="container">
+                <div class="footer-grid">
+                    <div class="footer-brand">
+                        <img src="img/logo.jfif" alt="LOGO" class="footer-logo">
+                        <p>Лучшая кухонная техника для вашего дома. Качество, проверенное временем и шеф-поварами.</p>
+                    </div>
+                    <div class="footer-contacts">
+                        <h4>Наши контакты</h4>
+                        <p>Адресс: г. Оренбург, МЖК</p>
+                        <p>Телефон: +7 912 066 99 58</p>
+                        <p>Почта: tim.dotsenko@mail.ru</p>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2025 KitchenEz. Все права защищены.</p>
+                </div>
+            </div>
+        </footer>
+
+    <script src="js/main.js?v=2.2"></script>
+</body>
+</html>
