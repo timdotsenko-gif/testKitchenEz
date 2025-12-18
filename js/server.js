@@ -10,36 +10,29 @@ const PORT = process.env.PORT || 3000;
 
 // Настройка подключения к PostgreSQL
 const getConnectionString = () => {
-    // Пробуем разные варианты написания (на случай опечаток в Render)
-    const rawUrl = process.env.DATABASE_URL || process.env.database_url || process.env.Database_Url;
+    const rawUrl = process.env.DATABASE_URL || process.env.database_url;
     
     if (!rawUrl) {
-        console.error('КРИТИЧЕСКАЯ ОШИБКА: Переменная DATABASE_URL не найдена в окружении!');
+        console.error('КРИТИЧЕСКАЯ ОШИБКА: DATABASE_URL не найдена!');
         return null;
     }
 
-    console.log('DATABASE_URL найдена. Длина:', rawUrl.length);
+    // Выводим в логи (безопасно) для диагностики
+    console.log('RAW DATABASE_URL length:', rawUrl.length);
+    console.log('RAW DATABASE_URL starts with:', rawUrl.substring(0, 15));
 
-    // Очистка строки
     let cleanUrl = rawUrl.trim();
     
-    // Если строка начинается не с postgres, пробуем найти начало ссылки
-    if (!cleanUrl.startsWith('postgres')) {
-        const index = cleanUrl.indexOf('postgres');
-        if (index !== -1) {
-            cleanUrl = cleanUrl.substring(index);
-        }
+    // Если в начале есть мусор (типа "base = "), отрезаем его
+    const pgMatch = cleanUrl.match(/postgresql?:\/\/[^\s]+/);
+    if (pgMatch) {
+        cleanUrl = pgMatch[0];
     }
 
-    // Убираем всё после первого пробела, кавычки и точки с запятой
-    cleanUrl = cleanUrl.split(/\s+/)[0].replace(/['";]/g, '');
+    // Убираем кавычки
+    cleanUrl = cleanUrl.replace(/['";]/g, '');
 
-    // Финальная проверка
-    if (!cleanUrl.startsWith('postgres')) {
-        console.error('ОШИБКА: DATABASE_URL имеет неверный формат:', cleanUrl.substring(0, 20) + '...');
-        return null;
-    }
-
+    console.log('CLEAN DATABASE_URL ends with:', cleanUrl.substring(cleanUrl.length - 10));
     return cleanUrl;
 };
 
