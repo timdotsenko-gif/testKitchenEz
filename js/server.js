@@ -9,10 +9,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Настройка подключения к PostgreSQL
+let connectionString = process.env.DATABASE_URL;
+
+// Защита от "мусора" в ссылке (если случайно попало 'base =' или пробелы)
+if (connectionString) {
+    connectionString = connectionString.replace(/^.*?=/, '').trim();
+}
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: {
-        rejectUnauthorized: false // Обязательно для облачных баз типа Neon/Render
+        rejectUnauthorized: false
     }
 });
 
