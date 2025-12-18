@@ -11,10 +11,18 @@ const PORT = process.env.PORT || 3000;
 // Настройка подключения к PostgreSQL
 let connectionString = process.env.DATABASE_URL;
 
-// Защита от "мусора" в ссылке (если случайно попало 'base =' или пробелы)
 if (connectionString) {
-    connectionString = connectionString.replace(/^.*?=/, '').trim();
+    console.log('DATABASE_URL detected. Cleaning string...');
+    // Находим начало ссылки
+    const pgIndex = connectionString.indexOf('postgres');
+    if (pgIndex !== -1) {
+        connectionString = connectionString.substring(pgIndex).trim();
+    }
+    // Убираем возможные кавычки и лишние символы в конце
+    connectionString = connectionString.split(' ')[0].replace(/['";]/g, '').trim();
 }
+
+console.log('Connecting to database (host masked):', connectionString ? connectionString.split('@')[1] : 'NOT FOUND');
 
 const pool = new Pool({
     connectionString: connectionString,
