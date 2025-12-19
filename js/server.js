@@ -62,7 +62,7 @@ const initDb = async () => {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                username TEXT NOT NULL,
+                username TEXT NOT NULL UNIQUE,
                 password TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS cart (
@@ -91,6 +91,17 @@ app.post('/register', async (req, res) => {
     }
     
     try {
+        // Сначала проверяем, существует ли пользователь с таким именем
+        const checkUser = await pool.query(
+            'SELECT id FROM users WHERE username = $1',
+            [username]
+        );
+        
+        if (checkUser.rows.length > 0) {
+            return res.status(400).json({ error: 'Пользователь с таким именем уже существует' });
+        }
+        
+        // Если пользователя нет, создаем нового
         const result = await pool.query(
             'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id',
             [username, password]
@@ -98,8 +109,8 @@ app.post('/register', async (req, res) => {
         res.json({ id: result.rows[0].id, username: username });
     } catch (err) {
         console.error('Ошибка при регистрации:', err);
-        // Если пользователь уже существует
-        if (err.code === '23505' || err.message.includes('duplicate')) {
+        // Дополнительная проверка на случай, если UNIQUE ограничение все равно сработает
+        if (err.code === '23505' || err.message.includes('duplicate') || err.message.includes('unique')) {
             return res.status(400).json({ error: 'Пользователь с таким именем уже существует' });
         }
         res.status(500).json({ error: 'Внутренняя ошибка сервера' });
