@@ -1,8 +1,9 @@
 {
   "name": "kitchen-site",
-  "version": "1.0.0",
-  "main": "js/server.js",
-  "scripts": {
+  "version": "1.0.0", 
+  "main": "js/server.js", 
+  "scripts":  
+  {
     "start": "node js/server.js"
   },
   "dependencies": {
