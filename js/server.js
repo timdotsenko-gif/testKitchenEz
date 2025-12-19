@@ -84,20 +84,37 @@ initDb();
 // Регистрация
 app.post('/register', async (req, res) => {
     const { username, password } = req.body;
+    
+    // Валидация данных
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Логин и пароль обязательны' });
+    }
+    
     try {
         const result = await pool.query(
             'INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id',
             [username, password]
         );
-        res.json({ id: result.rows[0].id });
+        res.json({ id: result.rows[0].id, username: username });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Ошибка при регистрации:', err);
+        // Если пользователь уже существует
+        if (err.code === '23505' || err.message.includes('duplicate')) {
+            return res.status(400).json({ error: 'Пользователь с таким именем уже существует' });
+        }
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 
 // Логин
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
+    
+    // Валидация данных
+    if (!username || !password) {
+        return res.status(400).json({ error: 'Логин и пароль обязательны' });
+    }
+    
     try {
         const result = await pool.query(
             'SELECT * FROM users WHERE username = $1 AND password = $2',
@@ -108,13 +125,20 @@ app.post('/login', async (req, res) => {
         }
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Ошибка при входе:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 
 // Добавление в корзину
 app.post('/cart/add', async (req, res) => {
     const { user_id, product_name, price, image_url } = req.body;
+    
+    // Валидация данных
+    if (!user_id || !product_name) {
+        return res.status(400).json({ error: 'Отсутствуют обязательные поля' });
+    }
+    
     try {
         const result = await pool.query(
             'INSERT INTO cart (user_id, product_name, price, image_url) VALUES ($1, $2, $3, $4) RETURNING id',
@@ -122,7 +146,8 @@ app.post('/cart/add', async (req, res) => {
         );
         res.json({ id: result.rows[0].id });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Ошибка при добавлении в корзину:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 
@@ -132,17 +157,22 @@ app.get('/cart/:user_id', async (req, res) => {
         const result = await pool.query('SELECT * FROM cart WHERE user_id = $1', [req.params.user_id]);
         res.json(result.rows);
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Ошибка при получении корзины:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 
 // Удаление из корзины
 app.delete('/cart/delete/:id', async (req, res) => {
     try {
-        await pool.query('DELETE FROM cart WHERE id = $1', [req.params.id]);
+        const result = await pool.query('DELETE FROM cart WHERE id = $1', [req.params.id]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Товар не найден в корзине' });
+        }
         res.json({ success: true });
     } catch (err) {
-        res.status(400).json({ error: err.message });
+        console.error('Ошибка при удалении из корзины:', err);
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
     }
 });
 

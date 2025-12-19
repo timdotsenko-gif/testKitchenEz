@@ -27,7 +27,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (userId) {
             try {
                 const res = await fetch(`${API_URL}/cart/${userId}`);
-                if (!res.ok) throw new Error('Ошибка сервера');
+                if (!res.ok) {
+                    let errorMessage = 'Ошибка сервера';
+                    if (res.status === 404) {
+                        errorMessage = 'Корзина не найдена';
+                    } else if (res.status === 500) {
+                        errorMessage = 'Внутренняя ошибка сервера';
+                    } else if (res.status === 400) {
+                        errorMessage = 'Неверный запрос';
+                    }
+                    throw new Error(errorMessage);
+                }
                 const items = await res.json();
                 
                 const badge = document.getElementById('cart-count');
@@ -69,7 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } catch (e) { 
-                console.error('Ошибка связи с сервером в updateUI:', e); 
+                console.error('Ошибка связи с сервером в updateUI:', e);
+                // Показываем пользователю сообщение только для критических ошибок
+                if (e.message.includes('500') || e.message.includes('Внутренняя ошибка')) {
+                    console.warn('Критическая ошибка сервера при загрузке корзины');
+                }
             }
         }
     }
@@ -83,9 +97,24 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             e.stopPropagation(); 
             const id = e.target.dataset.id;
-            // Сначала удаляем, потом обновляем UI
-            await fetch(`${API_URL}/cart/delete/${id}`, { method: 'DELETE' });
-            await updateUI();
+            try {
+                const res = await fetch(`${API_URL}/cart/delete/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    let errorMessage = 'Ошибка при удалении';
+                    if (res.status === 404) {
+                        errorMessage = 'Товар не найден в корзине';
+                    } else if (res.status === 500) {
+                        errorMessage = 'Ошибка сервера при удалении';
+                    } else if (res.status === 400) {
+                        errorMessage = 'Неверный запрос на удаление';
+                    }
+                    throw new Error(errorMessage);
+                }
+                await updateUI();
+            } catch (err) {
+                console.error('Ошибка при удалении:', err);
+                alert('Ошибка: ' + err.message);
+            }
             return;
         }
 
@@ -153,12 +182,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
                 
-                if (res.ok) {
-                    updateUI();
-                    // Убрали alert('Добавлено в корзину!');
+                if (!res.ok) {
+                    let errorMessage = 'Ошибка при добавлении в корзину';
+                    if (res.status === 404) {
+                        errorMessage = 'Сервис корзины недоступен';
+                    } else if (res.status === 500) {
+                        errorMessage = 'Ошибка сервера при добавлении товара';
+                    } else if (res.status === 400) {
+                        errorMessage = 'Неверные данные товара';
+                    } else if (res.status === 401) {
+                        errorMessage = 'Необходима авторизация';
+                    }
+                    throw new Error(errorMessage);
                 }
+                
+                updateUI();
+                // Убрали alert('Добавлено в корзину!');
             } catch (err) {
                 console.error('Ошибка при добавлении:', err);
+                alert('Ошибка: ' + err.message);
             }
         }
 
@@ -202,9 +244,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 if (!res.ok) {
-                    const errorData = await res.json();
-                    console.error('Server error:', errorData);
-                    throw new Error(errorData.error || 'Неверный логин или пароль');
+                    let errorMessage = 'Ошибка при авторизации';
+                    
+                    if (res.status === 404) {
+                        errorMessage = 'Пользователь не найден';
+                    } else if (res.status === 500) {
+                        errorMessage = 'Внутренняя ошибка сервера';
+                    } else if (res.status === 400) {
+                        try {
+                            const errorData = await res.json();
+                            errorMessage = errorData.error || 'Неверные данные';
+                        } catch {
+                            errorMessage = 'Неверный запрос';
+                        }
+                    } else if (res.status === 401) {
+                        errorMessage = 'Неверный логин или пароль';
+                    } else if (res.status === 403) {
+                        errorMessage = 'Доступ запрещен';
+                    }
+                    
+                    console.error('Server error:', res.status, errorMessage);
+                    throw new Error(errorMessage);
                 }
 
                 const data = await res.json();
